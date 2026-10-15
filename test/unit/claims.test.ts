@@ -70,3 +70,30 @@ test('name: sanitised, capped, falls back to undefined', () => {
 test('refusal message names the allowed domains', () => {
   assert.equal(refusalMessage('domain_not_allowed', ['example.com']), 'Only @example.com accounts can sign in here.');
 });
+
+test("'*' admits any domain, with or without hd, from any issuer", () => {
+  const any = ['*'];
+  for (const iss of [generic, GOOGLE_ISSUER]) {
+    for (const hd of [undefined, 'example.com', 'other.com']) {
+      const r = checkClaims({ iss, email: 'A@Gmail.com', email_verified: true, hd }, any);
+      assert.deepEqual(r, { ok: true, email: 'a@gmail.com', name: undefined }, `iss=${iss} hd=${String(hd)}`);
+    }
+  }
+});
+
+test("'*' still requires a verified, well-formed email", () => {
+  const any = ['*'];
+  const unverified = checkClaims({ iss: generic, email: 'a@gmail.com', email_verified: false }, any);
+  assert.equal(!unverified.ok && unverified.reason, 'email_not_verified');
+  const malformed = checkClaims({ iss: generic, email: 'no-at-sign', email_verified: true }, any);
+  assert.equal(!malformed.ok && malformed.reason, 'missing_email');
+});
+
+test("'*' is only a wildcard on its own", () => {
+  const r = checkClaims({ iss: generic, email: 'a@gmail.com', email_verified: true }, ['*', 'example.com']);
+  assert.equal(!r.ok && r.reason, 'domain_not_allowed');
+});
+
+test("refusal message never names '@*'", () => {
+  assert.equal(refusalMessage('domain_not_allowed', ['*']), 'This account cannot sign in here.');
+});

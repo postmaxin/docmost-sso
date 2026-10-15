@@ -1,7 +1,7 @@
 // OIDC relying-party logic (authorization code flow + PKCE) on openid-client.
 
 import * as client from 'openid-client';
-import { GOOGLE_ISSUER, type IdClaims } from './claims.js';
+import { allowsAnyDomain, GOOGLE_ISSUER, type IdClaims } from './claims.js';
 import type { FlowState } from './flow-cookie.js';
 
 export interface OidcSettings {
@@ -63,7 +63,9 @@ export class Oidc {
     if (this.isGoogle()) {
       // UX hints only; the hd claim is enforced on the callback.
       params.prompt = 'select_account';
-      if (this.s.allowedDomains.length === 1) params.hd = this.s.allowedDomains[0]!;
+      if (this.s.allowedDomains.length === 1 && !allowsAnyDomain(this.s.allowedDomains)) {
+        params.hd = this.s.allowedDomains[0]!;
+      }
     }
     return { url: client.buildAuthorizationUrl(config, params), flow };
   }

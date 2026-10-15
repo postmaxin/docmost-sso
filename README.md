@@ -36,10 +36,11 @@ browser ─> /sso/login ─> /sso/start ─> IdP ─> /sso/callback ─> 302 /ho
    if:
    - `email_verified` is `true`;
    - the email's domain is in `SSO_ALLOWED_DOMAINS` (exact match, no
-     subdomains);
+     subdomains), unless that is `*`;
    - when the issuer is Google, the `hd` (hosted domain) claim is present
      and in `SSO_ALLOWED_DOMAINS` (any issuer: an `hd` claim, if sent, must
-     be allowed).
+     be allowed), unless that is `*`, which skips the `hd` check and so
+     admits consumer Google accounts.
 4. In one transaction it finds the user by lower-cased email in the
    workspace, or creates them the way Docmost's sign-up does (role = the
    workspace's default role, membership of the default "Everyone" group, the
@@ -60,13 +61,13 @@ logged.
 ## Running it
 
 Images are published to GitHub Container Registry for `linux/amd64` and
-`linux/arm64`, tagged by version (`0.1.0`, `0.1`, `latest`):
+`linux/arm64`, tagged by version (`0.2.0`, `0.2`, `latest`):
 
 ```yaml
 # Next to Docmost in its docker compose file.
 services:
   docmost-sso:
-    image: ghcr.io/postmaxin/docmost-sso:0.1
+    image: ghcr.io/postmaxin/docmost-sso:0.2
     environment:
       APP_URL: https://docs.example.com     # same as Docmost's
       APP_SECRET: ${APP_SECRET}             # same as Docmost's
@@ -80,7 +81,7 @@ services:
     restart: unless-stopped
 ```
 
-For production, pin the digest too (`:0.1.0@sha256:…`). Then route
+For production, pin the digest too (`:0.2.0@sha256:…`). Then route
 `/sso/*` to it as described below. The image runs as the unprivileged
 `node` user and has a built-in health check.
 
@@ -105,7 +106,7 @@ at the proxy for everyone except a break-glass network.
 | `SESSION_TTL` | yes | Must equal Docmost's `JWT_TOKEN_EXPIRES_IN`, e.g. `7d`. A unit is required (`ms s m h d w y`). |
 | `OIDC_ISSUER` | yes | e.g. `https://accounts.google.com`. |
 | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | yes | The OIDC client. |
-| `SSO_ALLOWED_DOMAINS` | yes | Comma-separated email domains, e.g. `example.com`. |
+| `SSO_ALLOWED_DOMAINS` | yes | Comma-separated email domains, e.g. `example.com`. `*` on its own allows every domain (and skips the `hd` check); use it only when the IdP already decides who may sign in, e.g. an application bound to a group. |
 | `PORT` | no | Listen port, default `8080`. `HOST` defaults to `0.0.0.0`. |
 | `TRUST_PROXY` | no | Proxies whose `X-Forwarded-For` is trusted: comma-separated addresses, CIDRs or the presets `loopback`, `linklocal`, `uniquelocal`; or `true`/`false`. Default `loopback,linklocal,uniquelocal`. Used only for the session's IP address. |
 | `SSO_PROVIDER_NAME` | no | Button label, default `Google`. |

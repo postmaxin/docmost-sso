@@ -1,5 +1,6 @@
 // Configuration, read once from the environment at start-up.
 
+import { ANY_DOMAIN } from './claims.js';
 import { checkPath, DEFAULT_RETURN_TO } from './return-to.js';
 
 export interface Config {
@@ -112,6 +113,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     .filter(Boolean);
   if (allowedDomains.length === 0) {
     throw new Error('SSO_ALLOWED_DOMAINS must list at least one domain');
+  }
+  if (allowedDomains.includes(ANY_DOMAIN) && allowedDomains.length > 1) {
+    throw new Error(`SSO_ALLOWED_DOMAINS: '${ANY_DOMAIN}' allows every domain and must be the only entry`);
   }
 
   const port = Number(env.PORT ?? '8080');
