@@ -39,7 +39,8 @@ browser ─> /sso/login ─> /sso/start ─> IdP ─> /sso/callback ─> 302 /ho
      subdomains), unless that is `*`;
    - when the issuer is Google, the `hd` (hosted domain) claim is present
      and in `SSO_ALLOWED_DOMAINS` (any issuer: an `hd` claim, if sent, must
-     be allowed).
+     be allowed), unless that is `*`, which skips the `hd` check and so
+     admits consumer Google accounts.
 4. In one transaction it finds the user by lower-cased email in the
    workspace, or creates them the way Docmost's sign-up does (role = the
    workspace's default role, membership of the default "Everyone" group, the
