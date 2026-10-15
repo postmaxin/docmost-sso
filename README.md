@@ -60,13 +60,13 @@ logged.
 ## Running it
 
 Images are published to GitHub Container Registry for `linux/amd64` and
-`linux/arm64`, tagged by version (`0.1.0`, `0.1`, `latest`):
+`linux/arm64`, tagged by version (`0.2.0`, `0.2`, `latest`):
 
 ```yaml
 # Next to Docmost in its docker compose file.
 services:
   docmost-sso:
-    image: ghcr.io/postmaxin/docmost-sso:0.1
+    image: ghcr.io/postmaxin/docmost-sso:0.2
     environment:
       APP_URL: https://docs.example.com     # same as Docmost's
       APP_SECRET: ${APP_SECRET}             # same as Docmost's
@@ -80,7 +80,7 @@ services:
     restart: unless-stopped
 ```
 
-For production, pin the digest too (`:0.1.0@sha256:…`). Then route
+For production, pin the digest too (`:0.2.0@sha256:…`). Then route
 `/sso/*` to it as described below. The image runs as the unprivileged
 `node` user and has a built-in health check.
 
