@@ -36,7 +36,7 @@ browser ─> /sso/login ─> /sso/start ─> IdP ─> /sso/callback ─> 302 /ho
    if:
    - `email_verified` is `true`;
    - the email's domain is in `SSO_ALLOWED_DOMAINS` (exact match, no
-     subdomains);
+     subdomains), unless that is `*`;
    - when the issuer is Google, the `hd` (hosted domain) claim is present
      and in `SSO_ALLOWED_DOMAINS` (any issuer: an `hd` claim, if sent, must
      be allowed).
@@ -105,7 +105,7 @@ at the proxy for everyone except a break-glass network.
 | `SESSION_TTL` | yes | Must equal Docmost's `JWT_TOKEN_EXPIRES_IN`, e.g. `7d`. A unit is required (`ms s m h d w y`). |
 | `OIDC_ISSUER` | yes | e.g. `https://accounts.google.com`. |
 | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | yes | The OIDC client. |
-| `SSO_ALLOWED_DOMAINS` | yes | Comma-separated email domains, e.g. `example.com`. |
+| `SSO_ALLOWED_DOMAINS` | yes | Comma-separated email domains, e.g. `example.com`. `*` on its own allows every domain (and skips the `hd` check); use it only when the IdP already decides who may sign in, e.g. an application bound to a group. |
 | `PORT` | no | Listen port, default `8080`. `HOST` defaults to `0.0.0.0`. |
 | `TRUST_PROXY` | no | Proxies whose `X-Forwarded-For` is trusted: comma-separated addresses, CIDRs or the presets `loopback`, `linklocal`, `uniquelocal`; or `true`/`false`. Default `loopback,linklocal,uniquelocal`. Used only for the session's IP address. |
 | `SSO_PROVIDER_NAME` | no | Button label, default `Google`. |

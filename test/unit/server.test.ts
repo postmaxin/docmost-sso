@@ -192,3 +192,10 @@ test('SSO_DEFAULT_RETURN_TO must be a same-origin path', () => {
     assert.throws(() => loadConfig({ ...BASE_ENV, SSO_DEFAULT_RETURN_TO: bad }), /SSO_DEFAULT_RETURN_TO/, bad);
   }
 });
+
+test("SSO_ALLOWED_DOMAINS='*' allows every domain, and only on its own", () => {
+  assert.deepEqual(loadConfig({ ...BASE_ENV, SSO_ALLOWED_DOMAINS: ' * ' }).allowedDomains, ['*']);
+  for (const bad of ['*,example.com', 'example.com, *']) {
+    assert.throws(() => loadConfig({ ...BASE_ENV, SSO_ALLOWED_DOMAINS: bad }), /must be the only entry/, bad);
+  }
+});

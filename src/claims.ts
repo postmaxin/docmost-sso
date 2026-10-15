@@ -2,6 +2,17 @@
 
 export const GOOGLE_ISSUER = 'https://accounts.google.com';
 
+/**
+ * `SSO_ALLOWED_DOMAINS=*`: admit any domain. For an IdP that already decides
+ * who may sign in (group-bound applications, say), where a domain list would
+ * only repeat that decision. It must be the only entry.
+ */
+export const ANY_DOMAIN = '*';
+
+export function allowsAnyDomain(allowedDomains: readonly string[]): boolean {
+  return allowedDomains.length === 1 && allowedDomains[0] === ANY_DOMAIN;
+}
+
 export type Admission =
   | { ok: true; email: string; name: string | undefined }
   | { ok: false; reason: RefusalReason; email?: string };
@@ -40,15 +51,17 @@ export function checkClaims(claims: IdClaims, allowedDomains: readonly string[])
   }
 
   const domain = m[1]!;
-  if (!allowedDomains.includes(domain)) {
+  const anyDomain = allowsAnyDomain(allowedDomains);
+  if (!anyDomain && !allowedDomains.includes(domain)) {
     return { ok: false, reason: 'domain_not_allowed', email };
   }
 
   // Google: `hd` is the Workspace domain the account belongs to. A consumer
   // account can carry a Workspace-domain address as a secondary email; only
-  // `hd` proves the account is managed by that Workspace.
+  // `hd` proves the account is managed by that Workspace. With any domain
+  // allowed there is no Workspace to prove, and consumer accounts have no hd.
   const isGoogle = claims.iss === GOOGLE_ISSUER || claims.iss === 'accounts.google.com';
-  if (isGoogle || claims.hd !== undefined) {
+  if (!anyDomain && (isGoogle || claims.hd !== undefined)) {
     if (typeof claims.hd !== 'string' || !allowedDomains.includes(claims.hd.toLowerCase())) {
       return { ok: false, reason: 'hd_mismatch', email };
     }
@@ -73,6 +86,8 @@ export function refusalMessage(reason: RefusalReason, allowedDomains: readonly s
       return 'Your email address is not verified with your identity provider.';
     case 'domain_not_allowed':
     case 'hd_mismatch':
+      // Unreachable with any domain allowed, but never print "Only @* accounts".
+      if (allowsAnyDomain(allowedDomains)) return 'This account cannot sign in here.';
       return `Only ${domains} accounts can sign in here.`;
   }
 }
