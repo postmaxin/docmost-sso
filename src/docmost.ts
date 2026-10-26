@@ -25,6 +25,10 @@ import { parse as parseConnectionString } from 'pg-connection-string';
 export const SUPPORTED_MIGRATIONS: ReadonlySet<string> = new Set([
   // Docmost v0.96.0
   '20260904T171920-public-spaces',
+  // Docmost v0.97.0. The migration only adds `integrations` and
+  // `integration_connections`; v0.97.0's sign-up, session and group code differs
+  // from v0.96.0's only by websocket disconnects on revoke.
+  '20260905T126412-integrations',
 ]);
 
 /** Kysely's default migration table (Docmost does not override it). */
