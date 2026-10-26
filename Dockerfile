@@ -1,7 +1,11 @@
 # syntax=docker/dockerfile:1.7
 # docmost-sso: multi-stage build, runs as the unprivileged `node` user.
 
-ARG NODE_IMAGE=node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+# 2026-10-26: Node 22.23.4 and Alpine 3.24.3 (ca-certificates-bundle 20261020).
+# Node ships its own root store, so the Node release is what drops
+# emSign ECC Root CA - G3 (eMudhra); Alpine's bundle matters for wget. Never
+# below Node 22.23.4.
+ARG NODE_IMAGE=node:22-alpine@sha256:025b8e975a61d94e33abeafaad1255ef44e4898cf1a1b6446860009c72e6d284
 
 FROM ${NODE_IMAGE} AS build
 WORKDIR /app
