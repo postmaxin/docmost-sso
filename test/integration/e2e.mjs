@@ -128,7 +128,7 @@ async function main() {
 
   await scenario('healthz reports the supported migration', async () => {
     assert.equal(health.status, 'ok');
-    assert.equal(health.migration, '20260904T171920-public-spaces');
+    assert.equal(health.migration, '20260905T126412-integrations');
   });
 
   let adminToken;
