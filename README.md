@@ -10,8 +10,8 @@ normal Docmost session. They never get a Docmost password.
 It is an independent program: it contains no Docmost code and talks to
 Docmost only through its PostgreSQL database and its `authToken` cookie.
 
-> **Status:** tested against Docmost **v0.96.0** only. The shim refuses to
-> serve sign-ins against any other database schema version (see
+> **Status:** tested against Docmost **v0.96.0** and **v0.97.0**. The shim
+> refuses to serve sign-ins against any other database schema version (see
 > [Upgrading Docmost](#upgrading-docmost)).
 
 ## How it works
