@@ -30,6 +30,13 @@ test('only failures before the request is sent count as not sent', () => {
   assert.equal(isNotSent(new TypeError('fetch failed')), false);
   assert.equal(isNotSent(new Error('x', { cause: { code: 'ECONNREFUSED' } })), false);
   assert.equal(isNetworkFailure(new Error('unexpected ID Token "nonce" claim value')), false);
+  // openid-client's request deadline: the request may have been sent.
+  const deadline = Object.assign(new Error('operation timed out'), { name: 'ClientError', code: 'OAUTH_TIMEOUT' });
+  assert.equal(isNetworkFailure(deadline), true);
+  assert.equal(isNotSent(deadline), false);
+  // Other openid-client errors are not network failures.
+  const claim = Object.assign(new Error('unexpected JWT claim value encountered'), { name: 'ClientError', code: 'OAUTH_JWT_CLAIM_COMPARISON_FAILED' });
+  assert.equal(isNetworkFailure(claim), false);
 });
 
 test('retries a connection that never opened, with the same request', async () => {

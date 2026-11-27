@@ -155,6 +155,15 @@ test('callback: an unreachable IdP says so, not that verification failed', async
   assert.match(String(logs.at(-1)!.error), /\(cause UND_ERR_CONNECT_TIMEOUT\)/);
 });
 
+test("callback: openid-client's request deadline also counts as unreachable", async () => {
+  const deadline = Object.assign(new Error('operation timed out'), { name: 'ClientError', code: 'OAUTH_TIMEOUT' });
+  const { app, logs } = setup({ completeError: deadline });
+  const flow = await startFlow(app);
+  const res = await app.inject({ method: 'GET', url: '/sso/callback?code=c&state=st', headers: { cookie: flow } });
+  assert.equal(res.statusCode, 503);
+  assert.equal(logs.at(-1)!.reason, 'idp_unreachable');
+});
+
 test('callback: a token the IdP rejects is still a verification failure', async () => {
   const { app, logs } = setup({ completeError: new Error('unexpected ID Token "nonce" claim value') });
   const flow = await startFlow(app);

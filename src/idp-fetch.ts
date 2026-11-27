@@ -32,12 +32,15 @@ export function isNotSent(err: unknown): boolean {
 }
 
 /**
- * True for any network-level fetch failure (fetch rejects with a TypeError
- * whose cause carries a code), sent or not: the IdP could not be reached or
- * did not answer, as opposed to answering with an error or a bad token.
+ * True when the IdP could not be reached or did not answer, as opposed to
+ * answering with an error or a bad token: a network-level fetch failure (a
+ * TypeError whose cause carries a code), sent or not, or openid-client's
+ * per-request deadline (30 s, shared by all the retries of one request)
+ * expiring, which it reports as a ClientError with code OAUTH_TIMEOUT.
  */
 export function isNetworkFailure(err: unknown): boolean {
-  return err instanceof TypeError && causeCode(err) !== undefined;
+  if (err instanceof TypeError) return causeCode(err) !== undefined;
+  return err instanceof Error && (err as { code?: unknown }).code === 'OAUTH_TIMEOUT';
 }
 
 /** Generic over the options type: openid-client passes its own CustomFetchOptions. */
