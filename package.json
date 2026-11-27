@@ -1,6 +1,6 @@
 {
   "name": "docmost-sso",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "OIDC sign-in shim for self-hosted Docmost community edition",
   "private": true,
   "license": "MIT",

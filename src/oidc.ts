@@ -3,6 +3,7 @@
 import * as client from 'openid-client';
 import { allowsAnyDomain, GOOGLE_ISSUER, type IdClaims } from './claims.js';
 import type { FlowState } from './flow-cookie.js';
+import { retryingFetch } from './idp-fetch.js';
 
 export interface OidcSettings {
   issuer: string;
@@ -28,7 +29,11 @@ export class Oidc {
           this.s.clientId,
           this.s.clientSecret,
           undefined,
-          this.s.allowInsecure ? { execute: [client.allowInsecureRequests] } : undefined,
+          {
+            // Kept on the Configuration, so the token request retries too.
+            [client.customFetch]: retryingFetch(),
+            ...(this.s.allowInsecure ? { execute: [client.allowInsecureRequests] } : {}),
+          },
         )
         .catch((err: unknown) => {
           this.config = undefined;

@@ -9,6 +9,7 @@ import { deviceName } from './device-name.js';
 import { RefusedError, type SchemaStatus, type SignInInput, type SignInResult } from './docmost.js';
 import { FLOW_COOKIE, FLOW_TTL_SECONDS, deriveFlowKey, openFlow, sealFlow, type FlowState } from './flow-cookie.js';
 import type { IdClaims } from './claims.js';
+import { causeCode, isNetworkFailure } from './idp-fetch.js';
 import { errorPage, loginPage } from './pages.js';
 import { safeReturnTo } from './return-to.js';
 import { AUTH_COOKIE, authCookieAttributes, signAccessToken } from './token.js';
@@ -147,6 +148,14 @@ export function buildApp(deps: Deps): FastifyInstance {
     try {
       claims = await oidc.complete(callbackUrl, flow);
     } catch (err) {
+      if (isNetworkFailure(err)) {
+        log({ event: 'signin', outcome: 'error', reason: 'idp_unreachable', error: errSummary(err), ip });
+        return html(
+          reply,
+          503,
+          errorPage('Sign-in unavailable', 'We could not reach the sign-in service to finish signing you in. Please try again.'),
+        );
+      }
       log({ event: 'signin', outcome: 'refused', reason: 'token_validation_failed', error: errSummary(err), ip });
       return html(reply, 401, errorPage('Sign-in failed', 'We could not verify your sign-in. Please try again.'));
     }
@@ -225,7 +234,9 @@ export function buildApp(deps: Deps): FastifyInstance {
 export function errSummary(err: unknown): string {
   if (err instanceof Error) {
     const code = (err as { code?: unknown }).code;
-    return `${err.name}${typeof code === 'string' ? `[${code}]` : ''}: ${err.message}`.slice(0, 300);
+    // fetch reports every network failure as "fetch failed"; the cause says which.
+    const cause = causeCode(err);
+    return `${err.name}${typeof code === 'string' ? `[${code}]` : ''}: ${err.message}${cause ? ` (cause ${cause})` : ''}`.slice(0, 300);
   }
   return 'unknown error';
 }

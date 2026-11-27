@@ -58,6 +58,13 @@ Each sign-in outcome is logged as one JSON line (email, user id, created or
 existing, refusal reason, client IP). Tokens, codes and secrets are never
 logged.
 
+Requests to the IdP (discovery and the code exchange) retry up to three times
+when the connection never opens (connect timeout, refused, unreachable, DNS),
+because the code has not been presented yet. Failures after the request may
+have been sent are not retried. A sign-in that still cannot reach the IdP is
+logged as `idp_unreachable` and shown as "Sign-in unavailable", not as a
+failed verification.
+
 ## Running it
 
 Images are published to GitHub Container Registry for `linux/amd64` and
