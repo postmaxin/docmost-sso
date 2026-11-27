@@ -9,7 +9,9 @@ import { buildApp, type Deps } from '../../src/server.js';
 
 const SECRET = 's'.repeat(48);
 
-function setup(over: { claims?: IdClaims; signIn?: (i: SignInInput) => Promise<SignInResult>; schemaOk?: boolean } = {}) {
+function setup(
+  over: { claims?: IdClaims; signIn?: (i: SignInInput) => Promise<SignInResult>; schemaOk?: boolean; completeError?: unknown } = {},
+) {
   const config = loadConfig({
     APP_URL: 'https://docs.example.com/',
     APP_SECRET: SECRET,
@@ -33,6 +35,7 @@ function setup(over: { claims?: IdClaims; signIn?: (i: SignInInput) => Promise<S
       async complete(url, flow) {
         assert.equal(url.origin + url.pathname, 'https://docs.example.com/sso/callback');
         assert.equal(flow.state, 'st');
+        if (over.completeError !== undefined) throw over.completeError;
         return (
           over.claims ?? { iss: 'https://accounts.google.com', email: 'Bob@example.com', email_verified: true, hd: 'example.com', name: 'Bob' }
         );
@@ -134,6 +137,40 @@ test('callback: wrong domain is refused with a plain page, no session', async ()
   assert.ok(!cookiesOf(res).some((c) => c.startsWith('authToken=')));
   assert.equal(signIns.length, 0);
   assert.equal(logs.at(-1)!.reason, 'domain_not_allowed');
+});
+
+function fetchFailed(code: string): TypeError {
+  return new TypeError('fetch failed', { cause: Object.assign(new Error(code), { code }) });
+}
+
+test('callback: an unreachable IdP says so, not that verification failed', async () => {
+  const { app, logs } = setup({ completeError: fetchFailed('UND_ERR_CONNECT_TIMEOUT') });
+  const flow = await startFlow(app);
+  const res = await app.inject({ method: 'GET', url: '/sso/callback?code=c&state=st', headers: { cookie: flow } });
+  assert.equal(res.statusCode, 503);
+  assert.match(res.body, /could not reach the sign-in service/);
+  assert.doesNotMatch(res.body, /could not verify/);
+  assert.ok(!cookiesOf(res).some((c) => c.startsWith('authToken=')));
+  assert.equal(logs.at(-1)!.reason, 'idp_unreachable');
+  assert.match(String(logs.at(-1)!.error), /\(cause UND_ERR_CONNECT_TIMEOUT\)/);
+});
+
+test("callback: openid-client's request deadline also counts as unreachable", async () => {
+  const deadline = Object.assign(new Error('operation timed out'), { name: 'ClientError', code: 'OAUTH_TIMEOUT' });
+  const { app, logs } = setup({ completeError: deadline });
+  const flow = await startFlow(app);
+  const res = await app.inject({ method: 'GET', url: '/sso/callback?code=c&state=st', headers: { cookie: flow } });
+  assert.equal(res.statusCode, 503);
+  assert.equal(logs.at(-1)!.reason, 'idp_unreachable');
+});
+
+test('callback: a token the IdP rejects is still a verification failure', async () => {
+  const { app, logs } = setup({ completeError: new Error('unexpected ID Token "nonce" claim value') });
+  const flow = await startFlow(app);
+  const res = await app.inject({ method: 'GET', url: '/sso/callback?code=c&state=st', headers: { cookie: flow } });
+  assert.equal(res.statusCode, 401);
+  assert.match(res.body, /could not verify your sign-in/);
+  assert.equal(logs.at(-1)!.reason, 'token_validation_failed');
 });
 
 test('callback: missing flow cookie is refused before any token exchange', async () => {
